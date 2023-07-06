@@ -1,0 +1,37 @@
+pour avoir ce que je cherche : 
+1- aller sur le site : https://www.google.com/maps/
+2- taper : boulangerie cotonou dans la barre de recherche ayant pour id searchboxinput
+3- press enter
+4- attendre que la page se charge complètement 
+5- atteindre maintenant en bas dans l'espace particulier : 
+body -> div avec id "app-container" 
+-> div avec id "content-container" 
+->  div avec id="QA0Szd"   dès lors il faut forcément scroller dans la section en bas pour que la suite s'affiche utilise alors la fonction flèche du bas
+-> div enfant avec l'attribut jstcache
+-> div enfant avec l'attribut jstcache et class="XltNde tTVLSc"
+-> div enfant avec class="w6VYqd"
+->div enfant avec attribut jstcache class="bJzME tTVLSc"
+-> div enfant avec attribut jstcache class="k7jAl lJ3Kh miFGmb"
+-> div enfant jstcache et class="e07Vkf kA9KIf"
+-> div enfant jstcache et class="aIFcqe"
+-> div enfant avec class= "m6QErb WNBkOb " et role="main"
+-> div enfant avec class="m6QErb DxyBCb kA9KIf dS8AEf ecceSd"
+-> div enfant avec class = "m6QErb DxyBCb kA9KIf dS8AEf ecceSd" et aria-label="Résultats pour "boulangerie cotonou" : 
+dans cette section, il faut scroller jusqu'à ce que 
+-> la div enfant avec class="m6QErb tLjsW eKbjU " s'affiche
+
+
+var element = "div#QA0Szd div.jstcache.XltNde.tTVLSc div.w6VYqd div.bJzME.tTVLSc div.k7jAl.lJ3Kh.miFGmb div.e07Vkf.kA9KIf div.aIFcqe div.m6QErb.WNBkOb[role='main'] div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd"
+if (element) {
+    element.style.backgroundColor = "red";
+} else {
+    console.log(false);
+}
+
+
+var elementx = document.querySelector("div.m6QErb.tLjsW.eKbjU");
+if (elementx) {
+    elementx.style.backgroundColor = "red";
+} else {
+    console.log(false);
+}
