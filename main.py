@@ -5,14 +5,21 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import re
+import csv
+import os
 from bs4 import BeautifulSoup
+import world_map
 
-search_text = "bibliothèque Cotonou"
 page_sections = {
     "end": "#QA0Szd > div > div > div.w6VYqd > div.bJzME.tTVLSc > div > div.e07Vkf.kA9KIf > div > div > div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd > div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd.QjC7t > div.m6QErb.tLjsW.eKbjU",
     "entreprises": "#QA0Szd > div > div > div.w6VYqd > div.bJzME.tTVLSc > div > div.e07Vkf.kA9KIf > div > div > div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd > div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd"
 }
 entreprises = []
+
+cities = world_map.get_cities("France")[2]
+
+search_text = f"salle de cinéma à {cities}"
+
 driver = webdriver.Chrome()
 
 
@@ -57,51 +64,79 @@ def get_entreprises_html_section(search_text):
         By.CSS_SELECTOR, page_sections["entreprises"]
     ).get_attribute("innerHTML")
 
-    return section_html
+    return BeautifulSoup(section_html, 'html.parser').find_all('div', class_=['Nv2PK', 'Q2HXcd', 'THOPZb'])
 
 
-entreprises_html_section = get_entreprises_html_section(search_text)
-soup = BeautifulSoup(entreprises_html_section, 'html.parser')
+def get_all_entreprises_infos(soup):
+    for entreprises_infos in soup:
+        name = entreprises_infos.get('aria-label')
 
-soup_entreprises_infos = soup.find_all(
-    'div', class_=['Nv2PK', 'Q2HXcd', 'THOPZb'])
+        average_note = security_of_null(entreprises_infos.find(
+            'div', class_='bfdHYd').find('span', class_='MW4etd'))
 
-for entreprises_infos in soup_entreprises_infos:
-    name = entreprises_infos.get('aria-label')
+        vote_count = security_of_null(entreprises_infos.find(
+            'div', class_='bfdHYd').find('span', class_='UY7F9'))
 
-    average_note = security_of_null(entreprises_infos.find(
-        'div', class_='bfdHYd').find('span', class_='MW4etd'))
+        activity = security_of_null(entreprises_infos.select_one(
+            'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div:nth-child(1) span:nth-child(1) span'))
 
-    vote_count = security_of_null(entreprises_infos.find(
-        'div', class_='bfdHYd').find('span', class_='UY7F9'))
-
-    activity = security_of_null(entreprises_infos.select_one(
-        'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div:nth-child(1) span:nth-child(1) span'))
-
-    phone_number = security_of_null(entreprises_infos.select_one(
-        'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div:nth-child(2) span:nth-child(2) span:nth-child(2)'))
-    if (phone_number == "N/A"):
         phone_number = security_of_null(entreprises_infos.select_one(
-            'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div:nth-child(2) span span'))
-        if (contains_alphabet(phone_number)):
-            phone_number = "N/A"
+            'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div:nth-child(2) span:nth-child(2) span:nth-child(2)'))
+        if (phone_number == "N/A"):
+            phone_number = security_of_null(entreprises_infos.select_one(
+                'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div:nth-child(2) span span'))
+            if (contains_alphabet(phone_number)):
+                phone_number = "N/A"
 
-    href_element = entreprises_infos.select_one(
-        'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.Rwjeuc div:nth-child(1) a')
-    if href_element:
-        href = href_element.get('href')
-    else:
-        href = "N/A"
+        href_element = entreprises_infos.select_one(
+            'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.Rwjeuc div:nth-child(1) a')
+        if href_element:
+            href = href_element.get('href')
+        else:
+            href = "N/A"
 
-    adresse_element = entreprises_infos.select_one(
-        'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div span:nth-child(2) span:nth-child(2)')
-    if adresse_element:
-        adresse = adresse_element.get_text()
-    else:
-        adresse = "N/A"
+        adresse_element = entreprises_infos.select_one(
+            'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div span:nth-child(2) span:nth-child(2)')
+        if adresse_element:
+            adresse = adresse_element.get_text()
+        else:
+            adresse = "N/A"
 
-    entreprise = [name, activity,
-                  f"{average_note} {vote_count}", phone_number, href, adresse]
-    entreprises.append(entreprise)
+        entreprise = {
+            'name': name,
+            'activity': activity,
+            'celebrity_indice': f"{average_note} {vote_count}",
+            'phone_number': phone_number,
+            'web_site': href,
+            'adresse': adresse
+        }
+        entreprises.append(entreprise)
 
+
+soup = get_entreprises_html_section(search_text)
+get_all_entreprises_infos(soup)
 print(entreprises)
+
+# def load_data(save_folders, soup, products):
+# Cette fonction charge les données extraites dans un fichier CSV.
+# Elle utilise le titre de la page pour générer le nom du fichier CSV.
+# title = get_title(soup).strip().replace(
+#     "-", "_").replace("/", "_").replace(" ", "_").replace(":", "_").replace("|", "")
+
+# # On ouvre le fichier CSV en mode écriture et on spécifie l'encodage.
+# with open(f'{save_folders}/{title}.csv', mode='w', newline='', encoding='utf-8') as file:
+#     # On spécifie les noms des colonnes dans le fichier CSV.
+#     fieldnames = ['index', 'title', 'price', 'img_src']
+#     writer = csv.DictWriter(file, fieldnames=fieldnames)
+
+#     # On écrit l'en-tête du fichier CSV avec les noms des colonnes.
+#     writer.writeheader()
+
+#     # On initialise un compteur d'index.
+#     index = 1
+
+#     # Pour chaque produit extrait, on ajoute un index, puis on écrit les données du produit dans une ligne du fichier CSV.
+#     for product in products:
+#         product['index'] = index
+#         writer.writerow(product)
+#         index += 1
