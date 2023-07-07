@@ -18,7 +18,7 @@ entreprises = []
 
 cities = world_map.get_cities("France")[2]
 
-search_text = f"salle de cinéma à {cities}"
+search_text = f"bibliothèque à calavi"
 
 driver = webdriver.Chrome()
 
@@ -68,34 +68,38 @@ def get_entreprises_html_section(search_text):
 
 
 def get_all_entreprises_infos(soup):
-    for entreprises_infos in soup:
-        name = entreprises_infos.get('aria-label')
+    for entreprise_infos in soup:
+        name = entreprise_infos.get('aria-label')
 
-        average_note = security_of_null(entreprises_infos.find(
+        average_note = security_of_null(entreprise_infos.find(
             'div', class_='bfdHYd').find('span', class_='MW4etd'))
 
-        vote_count = security_of_null(entreprises_infos.find(
+        vote_count = security_of_null(entreprise_infos.find(
             'div', class_='bfdHYd').find('span', class_='UY7F9'))
 
-        activity = security_of_null(entreprises_infos.select_one(
+        activity = security_of_null(entreprise_infos.select_one(
             'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div:nth-child(1) span:nth-child(1) span'))
 
-        phone_number = security_of_null(entreprises_infos.select_one(
+        phone_number = security_of_null(entreprise_infos.select_one(
             'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div:nth-child(2) span:nth-child(2) span:nth-child(2)'))
         if (phone_number == "N/A"):
-            phone_number = security_of_null(entreprises_infos.select_one(
+            phone_number = security_of_null(entreprise_infos.select_one(
                 'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div:nth-child(2) span span'))
             if (contains_alphabet(phone_number)):
                 phone_number = "N/A"
 
-        href_element = entreprises_infos.select_one(
+        href_element = entreprise_infos.select_one(
             'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.Rwjeuc div:nth-child(1) a')
         if href_element:
             href = href_element.get('href')
         else:
             href = "N/A"
 
-        adresse_element = entreprises_infos.select_one(
+    # google maps masque phone number et href pour certaines categories
+    # il faudra donc aller sur la page de l'entreprise pour récupérer les infos
+        if (phone_number == "N/A" and href == "N/A"):
+            phone_number = entreprise_infos.select_one('div a').get('href')
+        adresse_element = entreprise_infos.select_one(
             'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div span:nth-child(2) span:nth-child(2)')
         if adresse_element:
             adresse = adresse_element.get_text()
