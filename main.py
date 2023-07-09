@@ -16,9 +16,9 @@ page_sections = {
 }
 entreprises = []
 
-cities = world_map.get_cities("France")[2]
+cities = world_map.get_cities("Côte d'Ivoire")[0]
 
-search_text = f"bibliothèque à calavi"
+search_text = f"entreprises à {cities}"
 
 driver = webdriver.Chrome()
 
@@ -117,30 +117,31 @@ def get_all_entreprises_infos(soup):
         entreprises.append(entreprise)
 
 
+def load_data(entreprises):
+    title = search_text.strip().replace(
+        "-", "_").replace("/", "_").replace(" ", "_").replace(":", "_").replace("|", "")
+
+    # On ouvre le fichier CSV en mode écriture et on spécifie l'encodage.
+    with open(f'{title}.csv', mode='w', newline='', encoding='utf-8') as file:
+        # On spécifie les noms des colonnes dans le fichier CSV.
+        fieldnames = ['index', 'name', 'activity', 'celebrity_indice',
+                      'phone_number', 'web_site', 'adresse']
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+
+        # On écrit l'en-tête du fichier CSV avec les noms des colonnes.
+        writer.writeheader()
+
+        # On initialise un compteur d'index.
+        index = 1
+
+        # Pour chaque produit extrait, on ajoute un index, puis on écrit les données du produit dans une ligne du fichier CSV.
+        for entreprise in entreprises:
+            entreprise['index'] = index
+            writer.writerow(entreprise)
+            index += 1
+
+
 soup = get_entreprises_html_section(search_text)
 get_all_entreprises_infos(soup)
-print(entreprises)
 
-# def load_data(save_folders, soup, products):
-# Cette fonction charge les données extraites dans un fichier CSV.
-# Elle utilise le titre de la page pour générer le nom du fichier CSV.
-# title = get_title(soup).strip().replace(
-#     "-", "_").replace("/", "_").replace(" ", "_").replace(":", "_").replace("|", "")
-
-# # On ouvre le fichier CSV en mode écriture et on spécifie l'encodage.
-# with open(f'{save_folders}/{title}.csv', mode='w', newline='', encoding='utf-8') as file:
-#     # On spécifie les noms des colonnes dans le fichier CSV.
-#     fieldnames = ['index', 'title', 'price', 'img_src']
-#     writer = csv.DictWriter(file, fieldnames=fieldnames)
-
-#     # On écrit l'en-tête du fichier CSV avec les noms des colonnes.
-#     writer.writeheader()
-
-#     # On initialise un compteur d'index.
-#     index = 1
-
-#     # Pour chaque produit extrait, on ajoute un index, puis on écrit les données du produit dans une ligne du fichier CSV.
-#     for product in products:
-#         product['index'] = index
-#         writer.writerow(product)
-#         index += 1
+load_data(entreprises)

@@ -24,5 +24,5 @@ france_cities = get_france_cities()
 
 quartiers = {
     "France": france_cities,
-    "Côte d'Ivoire": [],
+    "Côte d'Ivoire": ["Abidjan"],
 }
