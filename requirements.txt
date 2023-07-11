@@ -8,6 +8,7 @@ h11==0.14.0
 idna==3.4
 outcome==1.2.0
 pycparser==2.21
+pyjson5==1.6.3
 PySocks==1.7.1
 requests==2.31.0
 selenium==4.10.0

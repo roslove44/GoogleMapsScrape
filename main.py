@@ -4,6 +4,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 import re
 import csv
 import os
@@ -12,13 +13,17 @@ import world_map
 
 page_sections = {
     "end": "#QA0Szd > div > div > div.w6VYqd > div.bJzME.tTVLSc > div > div.e07Vkf.kA9KIf > div > div > div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd > div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd.QjC7t > div.m6QErb.tLjsW.eKbjU",
-    "entreprises": "#QA0Szd > div > div > div.w6VYqd > div.bJzME.tTVLSc > div > div.e07Vkf.kA9KIf > div > div > div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd > div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd"
+    "entreprises": "#QA0Szd > div > div > div.w6VYqd > div.bJzME.tTVLSc > div > div.e07Vkf.kA9KIf > div > div > div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd > div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd",
+    "end_x": "#QA0Szd > div > div > div.w6VYqd > div.bJzME.tTVLSc > div > div.e07Vkf.kA9KIf > div > div > div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd > div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd > div.m6QErb.tLjsW.eKbjU > div > p > span > span",
+    "single": "#QA0Szd > div > div > div.w6VYqd > div.bJzME.tTVLSc > div > div.e07Vkf.kA9KIf > div > div > div.TIHn2",
+    "another_country": "#omnibox-directions > div > div.JuLCid",
+    "region": "#QA0Szd > div > div > div.w6VYqd > div.bJzME.tTVLSc > div > div.e07Vkf.kA9KIf.dS8AEf > div > div > div.CPtD3c"
 }
+
+activities = world_map.activities
 entreprises = []
-
-cities = world_map.get_cities("Côte d'Ivoire")[0]
-
-search_text = f"entreprises à {cities}"
+country_of_search = "Bénin"
+cities = world_map.get_cities(country_of_search)[0]
 
 driver = webdriver.Chrome()
 
@@ -41,107 +46,155 @@ def get_entreprises_html_section(search_text):
 
     driver.implicitly_wait(1)  # Attendre que la page se charge complètement
 
-    # Scroller jusqu'à la section spécifique
-    actions = ActionChains(driver)
-    while True:
+    # Vérifier si la section "end_x" est déjà affichée
+    end_x_locator = (By.CSS_SELECTOR, page_sections["end_x"])
+    single_page_locator = (By.CSS_SELECTOR, page_sections["single"])
+    another_country_locator = (
+        By.CSS_SELECTOR, page_sections["another_country"])
+    regions_locator = (By.CSS_SELECTOR, page_sections["region"])
+    try:
+        wait = WebDriverWait(driver, 3)
+        wait.until(EC.visibility_of_element_located(single_page_locator))
+        single_page = driver.find_element(
+            By.CSS_SELECTOR, page_sections["single"]
+        )
+        if (single_page.is_displayed):
+            section_html = 0
+            return section_html
+    except:
         try:
-            section = driver.find_element(
-                By.CSS_SELECTOR, page_sections["end"]
+            wait = WebDriverWait(driver, 1)
+            wait.until(EC.visibility_of_element_located(
+                another_country_locator))
+            another_country = driver.find_element(
+                By.CSS_SELECTOR, page_sections["another_country"]
             )
-            if section.is_displayed():
-                break
+            if (another_country.is_displayed):
+                section_html = 0
+                return section_html
         except:
-            pass
-        actions.send_keys(Keys.ARROW_DOWN).perform()
+            try:
+                wait.until(EC.visibility_of_element_located(
+                    regions_locator))
+                region = driver.find_element(
+                    By.CSS_SELECTOR, page_sections["region"]
+                )
+                if (region.is_displayed):
+                    section_html = 0
+                    return section_html
+            except:
+                try:
+                    wait = WebDriverWait(driver, 3)
+                    wait.until(EC.visibility_of_element_located(end_x_locator))
+                    section_locator = (
+                        By.CSS_SELECTOR, page_sections["entreprises"])
+                    section_html = driver.find_element(
+                        *section_locator).get_attribute("innerHTML")
+                except:
+                    # Faire défiler jusqu'à la section "end"
+                    actions = ActionChains(driver)
+                    while True:
+                        try:
+                            section = driver.find_element(
+                                By.CSS_SELECTOR, page_sections["end"]
+                            )
+                            if section.is_displayed():
+                                break
+                        except:
+                            pass
+                        actions.send_keys(Keys.ARROW_DOWN).perform()
 
-    # Attendre que la section se charge complètement
-    wait = WebDriverWait(driver, 10)
-
-    section_locator = (By.CSS_SELECTOR, page_sections["end"])
-
-    section = wait.until(EC.visibility_of_element_located(section_locator))
-    section_html = driver.find_element(
-        By.CSS_SELECTOR, page_sections["entreprises"]
-    ).get_attribute("innerHTML")
-
-    return BeautifulSoup(section_html, 'html.parser').find_all('div', class_=['Nv2PK', 'Q2HXcd', 'THOPZb'])
+                    # Attendre que la section "entreprises" se charge complètement
+                    wait = WebDriverWait(driver, 10)
+                    section_locator = (
+                        By.CSS_SELECTOR, page_sections["entreprises"])
+                    section_html = driver.find_element(
+                        *section_locator).get_attribute("innerHTML")
+            return BeautifulSoup(section_html, 'html.parser').find_all('div', class_=['Nv2PK', 'Q2HXcd', 'THOPZb'])
 
 
 def get_all_entreprises_infos(soup):
-    for entreprise_infos in soup:
-        name = entreprise_infos.get('aria-label')
+    if (soup != 0):
+        for entreprise_infos in soup:
+            name = entreprise_infos.get('aria-label')
 
-        average_note = security_of_null(entreprise_infos.find(
-            'div', class_='bfdHYd').find('span', class_='MW4etd'))
+            average_note = security_of_null(entreprise_infos.find(
+                'div', class_='bfdHYd').find('span', class_='MW4etd'))
 
-        vote_count = security_of_null(entreprise_infos.find(
-            'div', class_='bfdHYd').find('span', class_='UY7F9'))
+            vote_count = security_of_null(entreprise_infos.find(
+                'div', class_='bfdHYd').find('span', class_='UY7F9'))
 
-        activity = security_of_null(entreprise_infos.select_one(
-            'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div:nth-child(1) span:nth-child(1) span'))
+            activity = security_of_null(entreprise_infos.select_one(
+                'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div:nth-child(1) span:nth-child(1) span'))
 
-        phone_number = security_of_null(entreprise_infos.select_one(
-            'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div:nth-child(2) span:nth-child(2) span:nth-child(2)'))
-        if (phone_number == "N/A"):
             phone_number = security_of_null(entreprise_infos.select_one(
-                'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div:nth-child(2) span span'))
-            if (contains_alphabet(phone_number)):
-                phone_number = "N/A"
+                'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div:nth-child(2) span:nth-child(2) span:nth-child(2)'))
+            if (phone_number == "N/A"):
+                phone_number = security_of_null(entreprise_infos.select_one(
+                    'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div:nth-child(2) span span'))
+                if (contains_alphabet(phone_number)):
+                    phone_number = "N/A"
 
-        href_element = entreprise_infos.select_one(
-            'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.Rwjeuc div:nth-child(1) a')
-        if href_element:
-            href = href_element.get('href')
-        else:
-            href = "N/A"
+            href_element = entreprise_infos.select_one(
+                'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.Rwjeuc div:nth-child(1) a')
+            if href_element:
+                href = href_element.get('href')
+            else:
+                href = "N/A"
 
-    # google maps masque phone number et href pour certaines categories
-    # il faudra donc aller sur la page de l'entreprise pour récupérer les infos
-        if (phone_number == "N/A" and href == "N/A"):
-            phone_number = entreprise_infos.select_one('div a').get('href')
-        adresse_element = entreprise_infos.select_one(
-            'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div span:nth-child(2) span:nth-child(2)')
-        if adresse_element:
-            adresse = adresse_element.get_text()
-        else:
-            adresse = "N/A"
+        # google maps masque phone number et href pour certaines categories
+        # il faudra donc aller sur la page de l'entreprise pour récupérer les infos
+            if (phone_number == "N/A" and href == "N/A"):
+                phone_number = entreprise_infos.select_one('div a').get('href')
+            adresse_element = entreprise_infos.select_one(
+                'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div span:nth-child(2) span:nth-child(2)')
+            if adresse_element:
+                adresse = adresse_element.get_text()
+            else:
+                adresse = "N/A"
 
-        entreprise = {
-            'name': name,
-            'activity': activity,
-            'celebrity_indice': f"{average_note} {vote_count}",
-            'phone_number': phone_number,
-            'web_site': href,
-            'adresse': adresse
-        }
-        entreprises.append(entreprise)
+            entreprise = {
+                'name': name,
+                'activity': activity,
+                'celebrity_indice': f"{average_note} {vote_count}",
+                'phone_number': phone_number,
+                'web_site': href,
+                'adresse': adresse
+            }
+            entreprises.append(entreprise)
 
 
 def load_data(entreprises):
     title = search_text.strip().replace(
         "-", "_").replace("/", "_").replace(" ", "_").replace(":", "_").replace("|", "")
-
-    # On ouvre le fichier CSV en mode écriture et on spécifie l'encodage.
-    with open(f'{title}.csv', mode='w', newline='', encoding='utf-8') as file:
-        # On spécifie les noms des colonnes dans le fichier CSV.
+    folder = country_of_search.strip().replace(
+        "-", "_").replace("/", "_").replace(" ", "_").replace(":", "_").replace("|", "")
+    if not os.path.exists(f'result/{folder}'):
+        os.makedirs(f'result/{folder}')
+    with open(f'result/{folder}/{title}.csv', mode='w', newline='', encoding='utf-8') as file:
         fieldnames = ['index', 'name', 'activity', 'celebrity_indice',
                       'phone_number', 'web_site', 'adresse']
         writer = csv.DictWriter(file, fieldnames=fieldnames)
 
-        # On écrit l'en-tête du fichier CSV avec les noms des colonnes.
         writer.writeheader()
 
         # On initialise un compteur d'index.
         index = 1
 
-        # Pour chaque produit extrait, on ajoute un index, puis on écrit les données du produit dans une ligne du fichier CSV.
         for entreprise in entreprises:
             entreprise['index'] = index
             writer.writerow(entreprise)
             index += 1
+    entreprises = []
 
 
-soup = get_entreprises_html_section(search_text)
-get_all_entreprises_infos(soup)
+for activity in activities[182:]:
+    search_text = f"{activity} à {cities}"
+    soup = get_entreprises_html_section(search_text)
+    get_all_entreprises_infos(soup)
+    load_data(entreprises)
 
-load_data(entreprises)
+# search_text = f"Rost Digital Services"
+# soup = get_entreprises_html_section(search_text)
+# get_all_entreprises_infos(soup)
+# load_data(entreprises)
