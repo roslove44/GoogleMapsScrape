@@ -1,6 +1,8 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -51,13 +53,14 @@ def get_entreprises_html_section(search_text):
 
     driver.implicitly_wait(1)  # Attendre que la page se charge complètement
 
-    # Vérifier si la section "end_x" est déjà affichée
+    # Définir  les variables de sélection
     end_x_locator = (By.CSS_SELECTOR, page_sections["end_x"])
     single_page_locator = (By.CSS_SELECTOR, page_sections["single"])
     another_country_locator = (
         By.CSS_SELECTOR, page_sections["another_country"])
     regions_locator = (By.CSS_SELECTOR, page_sections["region"])
     try:
+        # Vérifiez si la page affichée est une page unique d'infos entreprise
         wait = WebDriverWait(driver, 3)
         wait.until(EC.visibility_of_element_located(single_page_locator))
         single_page = driver.find_element(
@@ -66,8 +69,9 @@ def get_entreprises_html_section(search_text):
         if (single_page.is_displayed):
             section_html = 0
             return section_html
-    except:
+    except NoSuchElementException:
         try:
+            # Vérifiez si la page affichée est une redirection vers un lieu précis
             wait = WebDriverWait(driver, 1)
             wait.until(EC.visibility_of_element_located(
                 another_country_locator))
@@ -77,8 +81,9 @@ def get_entreprises_html_section(search_text):
             if (another_country.is_displayed):
                 section_html = 0
                 return section_html
-        except:
+        except NoSuchElementException:
             try:
+                # Vérifiez si la page affichée contient une section de planification tarifaire | temporelle | géographique
                 wait.until(EC.visibility_of_element_located(
                     regions_locator))
                 region = driver.find_element(
@@ -87,15 +92,16 @@ def get_entreprises_html_section(search_text):
                 if (region.is_displayed):
                     section_html = 0
                     return section_html
-            except:
+            except NoSuchElementException:
                 try:
+                    # Vérifiez si la liste d'e/se tient sur une page grâce au end_x_locator
                     wait = WebDriverWait(driver, 3)
                     wait.until(EC.visibility_of_element_located(end_x_locator))
                     section_locator = (
                         By.CSS_SELECTOR, page_sections["entreprises"])
                     section_html = driver.find_element(
                         *section_locator).get_attribute("innerHTML")
-                except:
+                except TimeoutException:
                     # Faire défiler jusqu'à la section "end"
                     actions = ActionChains(driver)
                     while True:
@@ -105,7 +111,7 @@ def get_entreprises_html_section(search_text):
                             )
                             if section.is_displayed():
                                 break
-                        except:
+                        except NoSuchElementException:
                             pass
                         actions.send_keys(Keys.ARROW_DOWN).perform()
 
