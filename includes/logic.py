@@ -1,3 +1,4 @@
+import tldextract
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
@@ -17,6 +18,17 @@ activities = world_map.activities
 driver = webdriver.Chrome()
 
 
+def is_valid_domain(domain):
+    extracted = tldextract.extract(domain)
+    return bool(extracted.domain and extracted.suffix)
+
+
+def is_valid_phone_number(phone_number):
+    # Modèle de numéro de téléphone avec des chiffres, des espaces et éventuellement le symbole "+"
+    pattern = r'^\+?[\d\s]+$'
+    return bool(re.match(pattern, phone_number))
+
+
 def security_of_null(variable):
     return variable.get_text() if variable else "N/A"
 
@@ -28,12 +40,22 @@ def contains_alphabet(string):
 
 def celebrity_indice(vote_count, average_note):
     if vote_count != "N/A" and average_note != "N/A":
-        average_note = float(average_note.replace(",", "."))
+        average_note = float(average_note.replace(
+            ",", ".").replace("\u202f", ""))
         vote_count = float(vote_count.replace(
-            "(", "").replace(")", ""))
-        return average_note*vote_count
+            "(", "").replace(")", "").replace("\u202f", ""))
+        return round(average_note*vote_count, 2)
     else:
         return 0
+
+
+def remove_elements(lst, keywords):
+    # Crée une copie de la liste pour éviter les problèmes de modification en cours de parcours
+    lst_copy = lst.copy()
+    for item in lst_copy:
+        if any(keyword.lower() in item.lower() for keyword in keywords):
+            lst.remove(item)
+    return lst
 
 
 def get_entreprises_html_section(search_text):
@@ -69,7 +91,7 @@ def get_entreprises_html_section(search_text):
         if (single_page.is_displayed):
             section_html = 0
             return section_html
-    except NoSuchElementException:
+    except:
         try:
             # Vérifiez si la page affichée est une redirection vers un lieu précis
             wait = WebDriverWait(driver, 1)
@@ -81,7 +103,7 @@ def get_entreprises_html_section(search_text):
             if (another_country.is_displayed):
                 section_html = 0
                 return section_html
-        except NoSuchElementException:
+        except:
             try:
                 # Vérifiez si la page affichée contient une section de planification tarifaire | temporelle | géographique
                 wait.until(EC.visibility_of_element_located(
@@ -92,7 +114,7 @@ def get_entreprises_html_section(search_text):
                 if (region.is_displayed):
                     section_html = 0
                     return section_html
-            except NoSuchElementException:
+            except:
                 try:
                     # Vérifiez si la liste d'e/se tient sur une page grâce au end_x_locator
                     wait = WebDriverWait(driver, 3)
@@ -101,7 +123,7 @@ def get_entreprises_html_section(search_text):
                         By.CSS_SELECTOR, page_sections["entreprises"])
                     section_html = driver.find_element(
                         *section_locator).get_attribute("innerHTML")
-                except TimeoutException:
+                except:
                     # Faire défiler jusqu'à la section "end"
                     actions = ActionChains(driver)
                     while True:
@@ -111,7 +133,7 @@ def get_entreprises_html_section(search_text):
                             )
                             if section.is_displayed():
                                 break
-                        except NoSuchElementException:
+                        except:
                             pass
                         actions.send_keys(Keys.ARROW_DOWN).perform()
 
@@ -165,6 +187,38 @@ def get_all_entreprises_infos(soup):
     return entreprises
 
 
+def href_checker(entreprises):
+    for entreprise in entreprises:
+        if "https://www.google.com/maps/" in entreprise['phone_number']:
+            driver.get(entreprise['phone_number'])
+            entreprise_info_section = "#QA0Szd > div > div > div.w6VYqd > div:nth-child(2) > div"
+            entreprise_info_locator = (
+                By.CSS_SELECTOR, entreprise_info_section)
+            wait = WebDriverWait(driver, 1)
+            wait.until(EC.visibility_of_element_located(
+                entreprise_info_locator))
+            section_html = driver.find_element(
+                *entreprise_info_locator).get_attribute("innerHTML")
+
+            section_parse = BeautifulSoup(section_html, 'html.parser').find_all(
+                'div', class_=['Io6YTe', 'fontBodyMedium', 'kR99db'])
+
+            section_text = [tag.get_text() for tag in section_parse]
+
+            new_phone_number = None
+            for text in section_text[:11]:
+                if is_valid_phone_number(text):
+                    new_phone_number = text
+                    break
+                elif is_valid_domain(text):
+                    entreprise['web_site'] = text
+
+            if new_phone_number:
+                entreprise['phone_number'] = new_phone_number
+            else:
+                entreprise['phone_number'] = 'N/A'
+
+
 def load_data(search_text, entreprises, country_of_search):
     title = search_text.strip().replace(
         "-", "_").replace("/", "_").replace(" ", "_").replace(":", "_").replace("|", "")
@@ -189,9 +243,9 @@ def load_data(search_text, entreprises, country_of_search):
     entreprises = []
 
 
-def scrape_activities_data(activities: list, country_of_search: str, town: str = None):
+def scrape_activities_data(activities: list, country_of_search: str, town: list = None):
     cities = world_map.get_cities(country_of_search)
-    if town is not None and isinstance(town, str):
+    if town is not None and isinstance(town, list):
         cities = [town]
 
     for city in cities:
@@ -201,6 +255,7 @@ def scrape_activities_data(activities: list, country_of_search: str, town: str =
                 f"\033[92m Récupération des infos {activity} à {city} ...\033[0m")
             soup = get_entreprises_html_section(search_text)
             entreprises = get_all_entreprises_infos(soup)
+            href_checker(entreprises)
             load_data(search_text, entreprises, country_of_search)
             print(
                 f"\033[92m \u2714 ({activity} à {city}): enregistré \033[0m")
@@ -212,6 +267,7 @@ def simple_search(search: str, country_of_search: str):
         f"\033[92m Récupération des infos {search_text}: {country_of_search} ...\033[0m")
     soup = get_entreprises_html_section(search_text)
     entreprises = get_all_entreprises_infos(soup)
+    href_checker(entreprises)
     load_data(search_text, entreprises, country_of_search)
     print(
         f"\033[92m \u2714 ({search_text}: {country_of_search}): enregistré \033[0m")
