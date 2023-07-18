@@ -1,8 +1,8 @@
 import pyjson5
 import os
-# import requests
-# from bs4 import BeautifulSoup
-# import csv
+
+# Récupère la liste des villes pour un pays donné
+# Si le pays n'est pas trouvé dans le dictionnaire, affiche un message d'erreur et quitte le programme
 
 
 def get_cities(country):
@@ -16,6 +16,7 @@ def get_cities(country):
         exit()
 
 
+# Récupère la liste des villes pour la France à partir d'un fichier JSON plus de 3000 villes impossible de tout stocker dans une liste en dur
 def get_france_cities():
     file_path = os.path.join(os.path.dirname(
         __file__), '../assets/france.json')
@@ -30,12 +31,14 @@ def get_france_cities():
 
 france_cities = get_france_cities()
 
-
+# Dictionnaire des villes pour chaque pays : flemme de renommer
 quartiers = {
     "France": france_cities,
     "Côte d'Ivoire": ["Abidjan"],
     "Bénin": ["Cotonou"]
 }
+
+# Extraction des activités à partir d'un fichier CSV
 
 
 def extract_activities_from_csv():
@@ -49,27 +52,5 @@ def extract_activities_from_csv():
     return activities
 
 
+# Liste des activités extraites du fichier CSV
 activities = extract_activities_from_csv()
-
-# activities = []
-# def extract_soup(url):
-#     # Cette fonction extrait le contenu HTML d'une URL donnée.
-#     # Elle envoie une requête à l'URL et récupère la réponse.
-#     response = requests.get(url)
-#     html_response = response.content
-#     soup = BeautifulSoup(html_response, 'html.parser').find_all('td')
-#     for td in soup:
-#         activities.append(td.get_text())
-
-
-# extract_soup('https://www.debugbar.com/fr/categories-google-my-business/')
-
-
-# def save_activities_to_csv(activities):
-#     with open('assets/activities.csv', mode='w', newline='', encoding='utf-8') as file:
-#         writer = csv.writer(file)
-#         for activity in activities:
-#             writer.writerow([activity])
-
-
-# save_activities_to_csv(activities)

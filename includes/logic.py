@@ -7,6 +7,7 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from tqdm import tqdm
 import re
 import csv
 import os
@@ -15,6 +16,7 @@ import includes.world_map as world_map
 
 activities = world_map.activities
 
+# Initialisation du driver Selenium
 driver = webdriver.Chrome()
 
 
@@ -29,6 +31,7 @@ def is_valid_phone_number(phone_number):
     return bool(re.match(pattern, phone_number))
 
 
+# Vérifie si une variable est nulle et retourne une valeur par défaut
 def security_of_null(variable):
     return variable.get_text() if variable else "N/A"
 
@@ -36,6 +39,8 @@ def security_of_null(variable):
 def contains_alphabet(string):
     pattern = re.compile(r'[a-zA-Z]')
     return bool(pattern.search(string))
+
+# Calcule l'indice de célébrité en multipliant le nombre de votes par la note moyenne
 
 
 def celebrity_indice(vote_count, average_note):
@@ -49,13 +54,7 @@ def celebrity_indice(vote_count, average_note):
         return 0
 
 
-def remove_elements(lst, keywords):
-    # Crée une copie de la liste pour éviter les problèmes de modification en cours de parcours
-    lst_copy = lst.copy()
-    for item in lst_copy:
-        if any(keyword.lower() in item.lower() for keyword in keywords):
-            lst.remove(item)
-    return lst
+# Récupère la section HTML des entreprises à partir de Google Maps
 
 
 def get_entreprises_html_section(search_text):
@@ -145,6 +144,8 @@ def get_entreprises_html_section(search_text):
                         *section_locator).get_attribute("innerHTML")
             return BeautifulSoup(section_html, 'html.parser').find_all('div', class_=['Nv2PK', 'Q2HXcd', 'THOPZb'])
 
+# Parcourt la section HTML des entreprises et extrait les informations nécessaires
+
 
 def get_all_entreprises_infos(soup):
     entreprises = []
@@ -186,14 +187,16 @@ def get_all_entreprises_infos(soup):
             entreprises.append(entreprise)
     return entreprises
 
+# Vérifie les liens des entreprises contenant "https://www.google.com/maps/"
+# et met à jour les numéros de téléphone et les sites web si nécessaire
+
 
 def href_checker(entreprises):
-    for entreprise in entreprises:
+    for entreprise in tqdm(entreprises, desc="Entreprises"):
         if "https://www.google.com/maps/" in entreprise['phone_number']:
             driver.get(entreprise['phone_number'])
-            entreprise_info_section = "#QA0Szd > div > div > div.w6VYqd > div:nth-child(2) > div"
             entreprise_info_locator = (
-                By.CSS_SELECTOR, entreprise_info_section)
+                By.CSS_SELECTOR, "#QA0Szd > div > div > div.w6VYqd > div:nth-child(2) > div")
             wait = WebDriverWait(driver, 1)
             wait.until(EC.visibility_of_element_located(
                 entreprise_info_locator))
@@ -203,23 +206,20 @@ def href_checker(entreprises):
             section_parse = BeautifulSoup(section_html, 'html.parser').find_all(
                 'div', class_=['Io6YTe', 'fontBodyMedium', 'kR99db'])
 
-            section_text = [tag.get_text() for tag in section_parse]
-
-            new_phone_number = None
-            for text in section_text[:11]:
+            for tag in section_parse[:11]:
+                text = tag.get_text()
                 if is_valid_phone_number(text):
-                    new_phone_number = text
+                    entreprise['phone_number'] = text
                     break
                 elif is_valid_domain(text):
                     entreprise['web_site'] = text
-
-            if new_phone_number:
-                entreprise['phone_number'] = new_phone_number
             else:
                 entreprise['phone_number'] = 'N/A'
 
+# Charge les données dans un fichier CSV
 
-def load_data(search_text, entreprises, country_of_search):
+
+def load_data(search_text, entreprises, country_of_search, town):
     title = search_text.strip().replace(
         "-", "_").replace("/", "_").replace(" ", "_").replace(":", "_").replace("|", "")
     folder = country_of_search.strip().replace(
@@ -228,7 +228,7 @@ def load_data(search_text, entreprises, country_of_search):
         os.makedirs(f'result/{folder}')
     with open(f'result/{folder}/{title}.csv', mode='w', newline='', encoding='utf-8') as file:
         fieldnames = ['index', 'name', 'activity', 'celebrity_indice', 'ic',
-                      'phone_number', 'web_site', 'adresse']
+                      'phone_number', 'web_site', 'adresse', 'town']
         writer = csv.DictWriter(file, fieldnames=fieldnames)
 
         writer.writeheader()
@@ -237,6 +237,7 @@ def load_data(search_text, entreprises, country_of_search):
         index = 1
 
         for entreprise in entreprises:
+            entreprise['town'] = town
             entreprise['index'] = index
             writer.writerow(entreprise)
             index += 1
@@ -246,28 +247,30 @@ def load_data(search_text, entreprises, country_of_search):
 def scrape_activities_data(activities: list, country_of_search: str, town: list = None):
     cities = world_map.get_cities(country_of_search)
     if town is not None and isinstance(town, list):
-        cities = [town]
+        cities = town
 
-    for city in cities:
-        for activity in activities:
+    for city in tqdm(cities, desc='Cities'):
+        for activity in tqdm(activities, desc="Activities"):
             search_text = f"{activity} à {city}"
             print(
                 f"\033[92m Récupération des infos {activity} à {city} ...\033[0m")
             soup = get_entreprises_html_section(search_text)
             entreprises = get_all_entreprises_infos(soup)
             href_checker(entreprises)
-            load_data(search_text, entreprises, country_of_search)
+            load_data(search_text, entreprises, country_of_search, city)
             print(
                 f"\033[92m \u2714 ({activity} à {city}): enregistré \033[0m")
 
+# Recherche simple d'un terme pour un pays et une ville donnés
 
-def simple_search(search: str, country_of_search: str):
-    search_text = f"{search}"
+
+def simple_search(search: str, country_of_search: str, town: str):
+    search_text = f"{search} à {town}"
     print(
         f"\033[92m Récupération des infos {search_text}: {country_of_search} ...\033[0m")
     soup = get_entreprises_html_section(search_text)
     entreprises = get_all_entreprises_infos(soup)
     href_checker(entreprises)
-    load_data(search_text, entreprises, country_of_search)
+    load_data(search_text, entreprises, country_of_search, town)
     print(
         f"\033[92m \u2714 ({search_text}: {country_of_search}): enregistré \033[0m")
