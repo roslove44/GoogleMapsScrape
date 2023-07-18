@@ -5,59 +5,39 @@ Cette application permet de récupérer des informations sur les entreprises à 
 ## Installation
 
 1. Clonez ce dépôt sur votre machine :
+git clone https://github.com/votre-utilisateur/nom-du-depot.git
 
-```bash
-git clone link
-```
-
-````
 
 2. Assurez-vous d'avoir Python 3 installé sur votre machine.
 
 3. Installez les dépendances requises à l'aide de pip :
-
-```bash
 pip install -r requirements.txt
-```
+
 
 ## Configuration
 
-Avant d'exécuter l'application, vous devez configurer les paramètres de recherche. Les fichiers de configuration se trouvent dans le répertoire `config/`.
+Avant d'exécuter l'application, vous devez configurer les paramètres de recherche. Les fichiers de configuration se trouvent dans le répertoire `includes/`.
 
-1. `activities.csv` : Ce fichier contient la liste des activités à rechercher. Vous pouvez modifier cette liste en ajoutant ou en supprimant des activités.
+1. `activities.csv` : Ce fichier contient la liste des activités que vous souhaitez rechercher. Chaque activité doit être sur une ligne séparée.
 
-2. `world_map.py` : Ce fichier contient les données de configuration pour les pays et les villes à rechercher. Vous pouvez ajouter de nouveaux pays et villes en les définissant dans ce fichier.
-
-## Utilisation
-
-L'application fournit deux méthodes de recherche :
-
-1. Recherche par activité et pays :
-
-```bash
-python main.py scrape_activities_data()
-```
+2. `world_map.py` : Ce fichier contient la configuration des pays et des villes pour lesquels vous souhaitez effectuer la recherche. Vous pouvez ajouter ou modifier des pays et leurs villes correspondantes dans le dictionnaire `quartiers`.
 
 
-2. Recherche simple par terme et pays :
 
-```bash
-python main.py simple_search()
-```
+L'application commencera à récupérer les informations sur les entreprises en fonction des paramètres de recherche configurés. Les résultats seront enregistrés dans le dossier `result/` avec des fichiers CSV pour chaque recherche effectuée.
 
+## Améliorations possibles
 
-Les résultats de la recherche seront enregistrés dans le répertoire `result/{country_of_search}/` sous forme de fichiers CSV.
+Voici quelques suggestions d'améliorations possibles pour cette application :
 
-## Contribution
+- Ajouter une interface utilisateur pour faciliter la configuration des paramètres de recherche.
+- Implémenter la parallélisation pour accélérer le processus de scraping.
+- Intégrer une base de données pour stocker les résultats de manière persistante.
+- Ajouter des fonctionnalités supplémentaires telles que la recherche par catégorie ou la géolocalisation.
 
-Les contributions sont les bienvenues ! Si vous souhaitez améliorer cette application, n'hésitez pas à créer une pull request.
+N'hésitez pas à contribuer à ce projet en proposant vos propres améliorations ou en soumettant des problèmes rencontrés.
 
 ## Licence
 
 Ce projet est sous licence MIT. Veuillez consulter le fichier `LICENSE` pour plus d'informations.
 
-```
-
-Ce modèle de fichier README.md fournit une structure de base pour présenter l'application, expliquer l'installation et l'utilisation, ainsi que mentionner les contributions et la licence. Vous pouvez personnaliser le contenu en fonction de vos besoins spécifiques et ajouter des sections supplémentaires si nécessaire.
-```
-````
