@@ -49,7 +49,7 @@ def celebrity_indice(vote_count, average_note):
             ",", ".").replace("\u202f", ""))
         vote_count = float(vote_count.replace(
             "(", "").replace(")", "").replace("\u202f", ""))
-        return round(average_note*vote_count, 2)
+        return round(average_note*vote_count)
     else:
         return 0
 
