@@ -5,7 +5,7 @@ Cette application permet de récupérer des informations sur les entreprises à 
 ## Installation
 
 1. Clonez ce dépôt sur votre machine :
-git clone [https://github.com/votre-utilisateur/nom-du-depot.git
+git clone [https://github.com/roslove44/GoogleMapsScrape.git.git
 ](https://github.com/roslove44/GoogleMapsScrape.git)
 
 2. Assurez-vous d'avoir Python 3 installé sur votre machine.
