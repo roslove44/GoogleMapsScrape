@@ -7,6 +7,8 @@ from includes.files_treater import merge_csv_files
 # Listes des activités disponibles
 # Vous pouvez ajouter ou supprimer des activités selon vos besoins
 # all_activities = activities
+all_activities = ['Pension Canine',
+                  'Cavistes et détaillants de vins', 'Guides touristiques locaux', 'Ateliers de couture et de mode', 'Boulangeries et pâtisseries']
 
 # Appels aux fonctions pour réaliser les opérations spécifiques
 # Commentez ou décommentez les fonctions en fonction de vos objectifs
@@ -14,15 +16,16 @@ from includes.files_treater import merge_csv_files
 # Exemple 1: Scraper les données pour toutes les activités dans une région spécifique
 # Remplir d'abord les données du dictionnaire quartiers in includes/world_map.py
 
-# scrape_activities_data(all_activities, country_of_search='France')
+# scrape_activities_data(
+#     all_activities, country_of_search='Martinique', town='Fort-de-France')
 # Possible de spécifier le paramètre town dans la fonction pour faire la recherche que dans une ville du pays
 
 # Exemple 2: Effectuer une recherche simple pour une requête spécifique
-# simple_search(search='Agence Marketing',
-#               country_of_search='France', town='Gisors')
+# simple_search(search='Pension canine',
+#               country_of_search='France', town='Fort-de-France')
 
 # Fusionner tous les fichiers CSV dans un seul fichier
-# merge_csv_files(folder='France', output_file_name='MDLC')
+merge_csv_files(folder='Martinique', output_file_name='Test Fort de France')
 
 # L'interface utilisateur sera développée ultérieurement avec Symfony
 # Le projet est en cours de développement et est prévu pour x dates

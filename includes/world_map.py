@@ -35,7 +35,8 @@ france_cities = get_france_cities()
 quartiers = {
     "France": france_cities,
     "Côte d'Ivoire": ["Abidjan"],
-    "Bénin": ["Cotonou"]
+    "Bénin": ["Cotonou"],
+    "Martinique": ["Fort-de-France"]
 }
 
 # Extraction des activités à partir d'un fichier CSV
