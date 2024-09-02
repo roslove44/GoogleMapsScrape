@@ -7,8 +7,7 @@ from includes.files_treater import merge_csv_files
 # Listes des activités disponibles
 # Vous pouvez ajouter ou supprimer des activités selon vos besoins
 # all_activities = activities
-all_activities = ['Pension Canine',
-                  'Cavistes et détaillants de vins', 'Guides touristiques locaux', 'Ateliers de couture et de mode', 'Boulangeries et pâtisseries']
+all_activities = ['Cabinet']
 
 # Appels aux fonctions pour réaliser les opérations spécifiques
 # Commentez ou décommentez les fonctions en fonction de vos objectifs
@@ -21,11 +20,11 @@ all_activities = ['Pension Canine',
 # Possible de spécifier le paramètre town dans la fonction pour faire la recherche que dans une ville du pays
 
 # Exemple 2: Effectuer une recherche simple pour une requête spécifique
-# simple_search(search='Pension canine',
-#               country_of_search='France', town='Fort-de-France')
+simple_search(search='Cabinet dentaire',
+              country_of_search='Benin', town='Abomey-Calavi')
 
 # Fusionner tous les fichiers CSV dans un seul fichier
-merge_csv_files(folder='Martinique', output_file_name='Test Fort de France')
+# merge_csv_files(folder='Cotonou', output_file_name='Test Johannes')
 
 # L'interface utilisateur sera développée ultérieurement avec Symfony
 # Le projet est en cours de développement et est prévu pour x dates
