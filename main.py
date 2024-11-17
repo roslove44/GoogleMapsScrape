@@ -20,11 +20,11 @@ all_activities = ['Cabinet']
 # Possible de spécifier le paramètre town dans la fonction pour faire la recherche que dans une ville du pays
 
 # Exemple 2: Effectuer une recherche simple pour une requête spécifique
-simple_search(search='Cabinet dentaire',
-              country_of_search='Benin', town='Abomey-Calavi')
+simple_search(search="Restaurant",
+              country_of_search='Bénin', town='Bohicon')
 
 # Fusionner tous les fichiers CSV dans un seul fichier
-# merge_csv_files(folder='Cotonou', output_file_name='Test Johannes')
+# merge_csv_files('Benin', 'agence_voyage_tourisme')
 
 # L'interface utilisateur sera développée ultérieurement avec Symfony
 # Le projet est en cours de développement et est prévu pour x dates
