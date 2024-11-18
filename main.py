@@ -21,7 +21,7 @@ all_activities = ['Cabinet']
 
 # Exemple 2: Effectuer une recherche simple pour une requête spécifique
 simple_search(search="Restaurant",
-              country_of_search='Bénin', town='Bohicon')
+              country_of_search='France', town='Lyon')
 
 # Fusionner tous les fichiers CSV dans un seul fichier
 # merge_csv_files('Benin', 'agence_voyage_tourisme')

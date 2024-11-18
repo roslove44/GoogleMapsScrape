@@ -185,7 +185,8 @@ def get_all_entreprises_infos(soup):
                 'ic': ic,
                 'phone_number': phone_number,
                 'web_site': href,
-                'adresse': adresse
+                'adresse': adresse,
+                'transition': phone_number
             }
             entreprises.append(entreprise)
     return entreprises
@@ -238,9 +239,9 @@ def extract_html_content_with_selenium(url):
 
 def href_checker(entreprises):
     for entreprise in tqdm(entreprises, desc="Entreprises"):
-        if "https://www.google.com/maps/" in entreprise['phone_number']:
+        if "https://www.google.com/maps/" in entreprise['transition']:
             html_content = extract_html_content_with_selenium(
-                entreprise['phone_number'])
+                entreprise['transition'])
             if html_content:
                 soup = BeautifulSoup(html_content, 'html.parser')
                 try:
@@ -254,15 +255,16 @@ def href_checker(entreprises):
                         for tag in section_parse:
                             text = tag.get_text()
                             if is_valid_phone_number(text):
-                                entreprise['phone_number'] = text
+                                print(text)
+                                entreprise.update({"phone_number": text})
+                                print(entreprise["phone_number"])
                             elif is_valid_domain(text):
-                                entreprise['web_site'] = text
-                            else:
-                                entreprise['phone_number'] = 'N/A'
+                                entreprise.update({"web_site": text})
                     else:
                         print("Élément avec le sélecteur donné non trouvé.")
                 except Exception as e:
                     print(f"Erreur lors du parsing : {e}")
+    return entreprises
 
 # Charge les données dans un fichier CSV
 
@@ -276,7 +278,7 @@ def load_data(search_text, entreprises, country_of_search, town):
         os.makedirs(f'result/{folder}')
     with open(f'result/{folder}/{title}.csv', mode='w', newline='', encoding='utf-8') as file:
         fieldnames = ['index', 'name', 'activity', 'celebrity_indice', 'ic',
-                      'phone_number', 'web_site', 'adresse', 'town']
+                      'phone_number', 'web_site', 'adresse', 'town', 'transition']
         writer = csv.DictWriter(file, fieldnames=fieldnames)
 
         writer.writeheader()
@@ -304,7 +306,7 @@ def scrape_activities_data(activities: list, country_of_search: str, town: list 
                 f"\033[92m Récupération des infos {activity} à {city} ...\033[0m")
             soup = get_entreprises_html_section(search_text)
             entreprises = get_all_entreprises_infos(soup)
-            href_checker(entreprises)
+            entreprises = href_checker(entreprises)
             load_data(search_text, entreprises, country_of_search, city)
             print(
                 f"\033[92m \u2714 ({activity} à {city}): enregistré \033[0m")
@@ -318,7 +320,7 @@ def simple_search(search: str, country_of_search: str, town: str):
         f"\033[92m Récupération des infos {search_text}: {country_of_search} ...\033[0m")
     soup = get_entreprises_html_section(search_text)
     entreprises = get_all_entreprises_infos(soup)
-    href_checker(entreprises)
-    load_data(search_text, entreprises, country_of_search, town)
+    data = href_checker(entreprises)
+    load_data(search_text, data, country_of_search, town)
     print(
         f"\033[92m \u2714 ({search_text}: {country_of_search}): enregistré \033[0m")
