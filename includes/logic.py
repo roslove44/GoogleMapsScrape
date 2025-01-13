@@ -176,8 +176,12 @@ def get_all_entreprises_infos(soup):
                 phone_number = entreprise_infos.select_one('div a').get('href')
             adresse_element = entreprise_infos.select_one(
                 'div.bfdHYd.Ppzolf.OFBs3e div.lI9IFe div.y7PRA div div div.UaQhfb.fontBodyMedium div:nth-child(4) div span:nth-child(2) span:nth-child(2)')
-            adresse = adresse_element.get_text() if adresse_element else "N/A"
+            adresse = adresse_element.get_text(
+            ) if adresse_element and adresse_element.get_text() else "N/A"
             ic = celebrity_indice(vote_count, average_note)
+            transition_element = entreprise_infos.select_one('a.hfpxzc')
+            transition = transition_element.get(
+                'href') if transition_element else "N/A"
             entreprise = {
                 'name': name,
                 'activity': activity,
@@ -186,7 +190,7 @@ def get_all_entreprises_infos(soup):
                 'phone_number': phone_number,
                 'web_site': href,
                 'adresse': adresse,
-                'transition': phone_number
+                'transition': transition
             }
             entreprises.append(entreprise)
     return entreprises
