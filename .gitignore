@@ -1,2 +1,18 @@
+# Environnement Python
 /env
+
+# Résultats du scraping
 /result
+
+# ChromeDriver (binaire local, ne pas commiter)
+chromedriver.exe
+chromedriver
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Variables d'environnement
+.env
