@@ -3,6 +3,7 @@ import sys
 from InquirerPy import inquirer
 from includes.scraper import scrape_activities_data, simple_search, activities
 from includes.csv_handler import merge_csv_files
+from includes.geo import quartiers
 from includes.i18n import set_lang, t
 
 
@@ -57,11 +58,43 @@ def main():
 
     elif choice == "scrape":
         print_hint("scrape_activities_data", t("hint_scrape"))
-        country    = inquirer.text(qmark="", amark=">", message=t("scrape_country")).execute()
-        town_input = inquirer.text(qmark="", amark=">", message=t("scrape_town")).execute()
-        act_input  = inquirer.text(qmark="", amark=">", message=t("scrape_act")).execute()
-        town       = [v.strip() for v in town_input.split(",")] if town_input else None
-        all_activities = [v.strip() for v in act_input.split(",")] if act_input else activities
+
+        # Pays
+        country = inquirer.select(qmark="", amark=">",
+            message=t("scrape_country"),
+            choices=list(quartiers.keys()),
+        ).execute()
+
+        # Villes
+        town_choice = inquirer.select(qmark="", amark=">",
+            message=t("scrape_town_choice"),
+            choices=[
+                {"name": t("scrape_town_all", count=len(quartiers[country])), "value": "all"},
+                {"name": t("scrape_town_custom"), "value": "custom"},
+            ],
+        ).execute()
+        if town_choice == "custom":
+            town_input = inquirer.text(qmark="", amark=">", message=t("scrape_town_input"), validate=lambda x: len(x.strip()) > 0).execute()
+            town = [v.strip() for v in town_input.split(",")]
+        else:
+            town = None
+
+        # Activités
+        act_choice = inquirer.select(qmark="", amark=">",
+            message=t("scrape_act_choice"),
+            choices=[
+                {"name": t("scrape_act_all", count=len(activities)), "value": "all"},
+                {"name": t("scrape_act_custom"), "value": "custom"},
+            ],
+        ).execute()
+        if act_choice == "custom":
+            act_input = inquirer.text(qmark="", amark=">", message=t("scrape_act_input"), validate=lambda x: len(x.strip()) > 0).execute()
+            all_activities = [v.strip() for v in act_input.split(",")]
+        else:
+            all_activities = activities
+
+        # TODO: ajouter quartier pour découper les recherches
+
         scrape_activities_data(all_activities, country_of_search=country, town=town, lang=lang)
 
     elif choice == "merge":
