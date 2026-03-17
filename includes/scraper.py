@@ -21,7 +21,8 @@ def parse_single_entreprise(soup, transition_url):
     """Parse la fiche d'une entreprise unique."""
     name = get_text_or_na(soup.select_one('h1.DUwDvf.lfPIob'))
     average_note = get_text_or_na(soup.select_one('div.F7nice span[aria-hidden="true"]'))
-    vote_count_el = soup.select_one('span[role="img"][aria-label*="avis"]')
+    vote_count_els = soup.select('div.F7nice span span[role="img"]')
+    vote_count_el = vote_count_els[1] if len(vote_count_els) >= 2 else None
     vote_count = vote_count_el.get_text(strip=True) if vote_count_el else "N/A"
     activity = get_text_or_na(soup.select_one('button.DkEaL'))
     ic = celebrity_indice(vote_count, average_note)
@@ -54,7 +55,7 @@ def parse_single_entreprise(soup, transition_url):
     }]
 
 
-def get_entreprises_html_section(driver, search_text):
+def get_entreprises_html_section(driver, search_text, lang="fr"):
     from selenium.common.exceptions import TimeoutException
 
     FEED_SELECTOR = "div[role='feed']"
@@ -62,7 +63,7 @@ def get_entreprises_html_section(driver, search_text):
     OMNIBOX_SELECTOR = "#omnibox-directions, #directions-searchbox-0, #directions-searchbox-1"
     END_OF_LIST_SELECTOR = "div.m6QErb.tLjsW.eKbjU"
 
-    driver.get("https://www.google.com/maps/")
+    driver.get(f"https://www.google.com/maps/?hl={lang}")
 
     # Accepter la page de consentement cookies Google si elle apparaît
     try:
@@ -191,7 +192,7 @@ def href_checker(entreprises):
     return entreprises
 
 
-def scrape_activities_data(activities: list, country_of_search: str, town: list = None):
+def scrape_activities_data(activities: list, country_of_search: str, town: list = None, lang: str = "fr"):
     cities = geo.get_cities(country_of_search)
     if town is not None and isinstance(town, list):
         cities = town
@@ -202,7 +203,7 @@ def scrape_activities_data(activities: list, country_of_search: str, town: list 
                 location = f"{city} {country_of_search}" if country_of_search else city
                 search_text = f"{activity} à {location}"
                 print(f"\033[92m Récupération des infos {activity} à {location} ...\033[0m")
-                result = get_entreprises_html_section(driver, search_text)
+                result = get_entreprises_html_section(driver, search_text, lang=lang)
                 if result is None:
                     print(f"\033[93m ⚠ ({activity} à {city}): aucun résultat\033[0m")
                     continue
@@ -217,12 +218,12 @@ def scrape_activities_data(activities: list, country_of_search: str, town: list 
 
 
 # ✔ tested and working
-def simple_search(search: str, country_of_search: str = None, town: str = None):
-    location = " ".join(p for p in [town, country_of_search] if p)
+def simple_search(search: str, country_of_search: str = None, town: str = None, neighborhood: str = None, lang: str = "fr"):
+    location = " ".join(p for p in [neighborhood, town, country_of_search] if p)
     search_text = f"{search} à {location}" if location else search
     print(f"\033[92m Récupération des infos {search_text} ...\033[0m")
     with create_driver() as driver:
-        result = get_entreprises_html_section(driver, search_text)
+        result = get_entreprises_html_section(driver, search_text, lang=lang)
     if result is None:
         print(f"\033[93m ⚠ ({search_text}): aucun résultat\033[0m")
         return
