@@ -1,43 +1,69 @@
-# Application de scraping d'informations sur les entreprises
+# GoogleMapsScrape
 
-Cette application permet de récupérer des informations sur les entreprises à partir de Google Maps. Elle utilise Selenium pour automatiser la navigation et le scraping des données.
+> **Disclaimer**
+> This project was built as a personal exercise to practice Python, web scraping, and browser automation. I do not guarantee that scraping Google Maps complies with their Terms of Service. Use this tool responsibly, at your own risk, and do not abuse it. Respect rate limits and the data you collect. If you use it commercially, make sure you have the legal right to do so.
 
-## Installation
+A Google Maps scraper that extracts business information (name, rating, reviews, phone, website, address) and exports it to CSV.
 
-1. Clonez ce dépôt sur votre machine :
-git clone [https://github.com/roslove44/GoogleMapsScrape.git
-](https://github.com/roslove44/GoogleMapsScrape.git)
+This started as a side project to test my Python skills and ended up being genuinely useful.
 
-2. Assurez-vous d'avoir Python 3 installé sur votre machine.
+![Preview](cover.webp)
 
-3. Installez les dépendances requises à l'aide de pip :
+## Features
+
+- **Simple search** -- one keyword in one city (e.g. "Bakery" in Cotonou)
+- **Bulk scrape** -- predefined activities across all cities in a country
+- **CSV merge** -- consolidate all results into a single file
+- **Bilingual CLI** -- French / English with interactive prompts
+- **Smart detection** -- handles single business pages, geographic regions, and cross-country redirects
+- **Error logging** -- clean terminal output, detailed logs in `logs/`
+
+## Quick start
+
+**Prerequisites**: Python 3.8+, Google Chrome installed.
+
+```bash
+# 1. Clone
+git clone https://github.com/roslove44/GoogleMapsScrape.git
+cd GoogleMapsScrape
+
+# 2. Virtual env (recommended)
+python -m venv env
+source env/bin/activate  # Linux/Mac
+env\Scripts\activate     # Windows
+
+# 3. Dependencies
 pip install -r requirements.txt
 
+# 4. ChromeDriver
+# Download the version matching your Chrome:
+# https://googlechromelabs.github.io/chrome-for-testing/
+# Place chromedriver(.exe) at the project root, next to main.py
 
-## Configuration
+# 5. Run
+python main.py
+```
 
-Avant d'exécuter l'application, vous devez configurer les paramètres de recherche. Les fichiers de configuration se trouvent dans le répertoire `includes/`.
+## Preconfigured countries
 
-1. `activities.csv` : Ce fichier contient la liste des activités que vous souhaitez rechercher. Chaque activité doit être sur une ligne séparée.
+France (36k+ cities), Benin, Ivory Coast, Martinique. Custom cities can be entered manually.
 
-2. `world_map.py` : Ce fichier contient la configuration des pays et des villes pour lesquels vous souhaitez effectuer la recherche. Vous pouvez ajouter ou modifier des pays et leurs villes correspondantes dans le dictionnaire `quartiers`.
+Configuration in `assets/`: `france.json` (city list), `activities.csv` (370+ business types).
 
+## Output
 
+Results are exported as CSV files in `result/<country>/`. Use the merge option to consolidate them into `result/<country>/merge/`.
 
-L'application commencera à récupérer les informations sur les entreprises en fonction des paramètres de recherche configurés. Les résultats seront enregistrés dans le dossier `result/` avec des fichiers CSV pour chaque recherche effectuée.
+Error logs are written to `logs/` (one file per day).
 
-## Améliorations possibles
+## Good to know
 
-Voici quelques suggestions d'améliorations possibles pour cette application :
+Google Maps caps results at ~120 per search. For better coverage, split searches by neighborhood rather than searching an entire city.
 
-- Ajouter une interface utilisateur pour faciliter la configuration des paramètres de recherche.
-- Implémenter la parallélisation pour accélérer le processus de scraping.
-- Intégrer une base de données pour stocker les résultats de manière persistante.
-- Ajouter des fonctionnalités supplémentaires telles que la recherche par catégorie ou la géolocalisation.
+## Stack
 
-N'hésitez pas à contribuer à ce projet en proposant vos propres améliorations ou en soumettant des problèmes rencontrés.
+Python 3 | Selenium 4 | BeautifulSoup | InquirerPy | tqdm | tldextract
 
-## Licence
+## License
 
-Ce projet est sous licence MIT. Veuillez consulter le fichier `LICENSE` pour plus d'informations.
-
+MIT

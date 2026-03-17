@@ -1,84 +1,67 @@
-pour avoir ce que je cherche : 
+=== v1 - 05/07/2023 - Comment je scrape Google Maps ===
+
+pour avoir ce que je cherche :
 1- aller sur le site : https://www.google.com/maps/
 2- taper : boulangerie cotonou dans la barre de recherche ayant pour id searchboxinput
 3- press enter
-4- attendre que la page se charge complètement 
-5- atteindre maintenant en bas dans l'espace particulier : 
-body -> div avec id "app-container" 
--> div avec id "content-container" 
-->  div avec id="QA0Szd"   dès lors il faut forcément scroller dans la section en bas pour que la suite s'affiche utilise alors la fonction flèche du bas
--> div enfant avec l'attribut jstcache
--> div enfant avec l'attribut jstcache et class="XltNde tTVLSc"
--> div enfant avec class="w6VYqd"
-->div enfant avec attribut jstcache class="bJzME tTVLSc"
--> div enfant avec attribut jstcache class="k7jAl lJ3Kh miFGmb"
--> div enfant jstcache et class="e07Vkf kA9KIf"
--> div enfant jstcache et class="aIFcqe"
--> div enfant avec class= "m6QErb WNBkOb " et role="main"
--> div enfant avec class="m6QErb DxyBCb kA9KIf dS8AEf ecceSd"
--> div enfant avec class = "m6QErb DxyBCb kA9KIf dS8AEf ecceSd" et aria-label="Résultats pour "boulangerie cotonou" : 
-dans cette section, il faut scroller jusqu'à ce que 
--> la div enfant avec class="m6QErb tLjsW eKbjU " s'affiche
+4- attendre que la page se charge complètement
+5- atteindre le conteneur de résultats :
+   body -> div#app-container -> div#content-container -> div#QA0Szd
+   il faut scroller dans cette section pour que les résultats se chargent
 
+   chemin vers le feed :
+   -> div.XltNde.tTVLSc -> div.w6VYqd -> div.bJzME.tTVLSc
+   -> div.k7jAl.lJ3Kh.miFGmb -> div.e07Vkf.kA9KIf -> div.aIFcqe
+   -> div.m6QErb.WNBkOb[role="main"]
+   -> div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd[aria-label="Résultats pour ..."]
 
-var element = "div#QA0Szd div.jstcache.XltNde.tTVLSc div.w6VYqd div.bJzME.tTVLSc div.k7jAl.lJ3Kh.miFGmb div.e07Vkf.kA9KIf div.aIFcqe div.m6QErb.WNBkOb[role='main'] div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd"
-if (element) {
-    element.style.backgroundColor = "red";
-} else {
-    console.log(false);
-}
+6- scroller jusqu'à ce que div.m6QErb.tLjsW.eKbjU apparaisse (marqueur de fin de liste)
 
+sélecteurs que j'utilise pour les infos de chaque card :
+- activité : div > div.bfdHYd ... > span
+- site web : div.lI9IFe > div.Rwjeuc > div:nth-child(1) > a
+- téléphone : div.UaQhfb ... > span:last-child > span:last-child
+- lien fiche : div > a
 
+quand la recherche tombe sur un autre pays :
+- #omnibox-directions > div > div:nth-child(2) > div > button
+
+snippet js pour tester le feed dans la console :
+var element = document.querySelector("div.m6QErb.DxyBCb.kA9KIf.dS8AEf.ecceSd");
+element ? element.style.backgroundColor = "red" : console.log(false);
+
+snippet js pour tester le marqueur de fin :
 var elementx = document.querySelector("div.m6QErb.tLjsW.eKbjU");
-if (elementx) {
-    elementx.style.backgroundColor = "red";
-} else {
-    console.log(false);
-}
+elementx ? elementx.style.backgroundColor = "red" : console.log(false);
 
 
-div > div.bfdHYd.Ppzolf.OFBs3e > div.lI9IFe > div.y7PRA > div > div > div.UaQhfb.fontBodyMedium > div:nth-child(4) > div:nth-child(1) > span:nth-child(1) > span
+=== v2 - 12/03/2026 - Mise à jour après changements Google Maps ===
 
-div > div.bfdHYd.Ppzolf.OFBs3e > div.lI9IFe > div.y7PRA > div > div > div.UaQhfb.fontBodyMedium > div:nth-child(4) > div:nth-child(1) > span:nth-child(1) > span
+google a changé des trucs, je dois revoir ma logique de détection de page.
 
-div > div.bfdHYd.Ppzolf.OFBs3e > div.lI9IFe > div.y7PRA > div > div > div.UaQhfb.fontBodyMedium > div:nth-child(4) > div:nth-child(2) > span > span
+je me suis rendu compte que je peux tout détecter avec div.m6QErb.XiKgde[role="region"] :
+- 0 regions → another_country ou rien → skip
+- 1 region → zone géographique (genre "Cotonou" tout court) → skip
+- 2+ regions → fiche unique (single) → je parse
+- div[role="feed"] présent → liste d'entreprises → scroll + parse les cards
 
-div > div.bfdHYd.Ppzolf.OFBs3e > div.lI9IFe > div.Rwjeuc > div:nth-child(1) > a
+pour le cas "another_country" j'ajoute aussi :
+#omnibox-directions, #directions-searchbox-0, #directions-searchbox-1
 
-div > div.bfdHYd.Ppzolf.OFBs3e > div.lI9IFe > div.y7PRA > div > div > div.UaQhfb.fontBodyMedium > div:nth-child(4) > div > span:nth-child(2) > span:nth-child(2)
+pour le single, je parse la fiche directement :
+- titre section (div.tAiQdd) :
+  - nom : h1.DUwDvf.lfPIob
+  - note : div.F7nice span[aria-hidden="true"]
+  - avis : 2e span[role="img"] dans div.F7nice
+  - activité : button.DkEaL
+- détails section (2e div.m6QErb.XiKgde[role="region"]) :
+  - 1er div.Io6YTe.fontBodyMedium.kR99db → adresse
+  - les suivants → téléphone (is_valid_phone_number) et site web (is_valid_domain)
 
-div > a
-
-
-when the search is in another country
-#omnibox-directions > div > div:nth-child(2) > div > button
-
-
-=== DRAFT : nouvelle logique get_entreprises_html_section ===
-
-CONSTAT :
-- "entreprises" (liste) → conteneur role="main" qui abrite un div role="feed"
-- "single" (fiche unique) → conteneur role="main" aussi, MAIS contient div.m6QErb.XiKgde[role="region"]
-  → C'est la même logique que href_checker : une fiche entreprise directe
-  → Au lieu de return 0, on devrait extraire les infos de cette entreprise unique
-
-DETECTION :
-1. entreprises → div[role="feed"] présent → scroll infini + parse toutes les cards
-2. single → 2+ div.m6QErb.XiKgde[role="region"] (pas de feed) → parse la fiche unique (titre + détails via href_checker logique)
-3. region → 1 seul div.m6QErb.XiKgde[role="region"] → skip
-4. another_country → #omnibox-directions présent → skip
-
-PARSING single — section titre (div.tAiQdd) :
-- Nom : h1.DUwDvf.lfPIob → "Supermarché CHEZ LE GROS"
-- Note moyenne : div.F7nice span[aria-hidden="true"] → "4,2"
-- Nombre d'avis : span[role="img"][aria-label*="avis"] → "(370)"
-- Activité : button.DkEaL → "Supermarché"
-
-PARSING single — section détails (div.m6QErb.XiKgde[role="region"]) :
-- Même logique que href_checker : parser les div.Io6YTe.fontBodyMedium.kR99db
-- Extraire phone_number (is_valid_phone_number) et web_site (is_valid_domain)
+pour le scroll du feed :
+- j'utilise div.m6QErb.tLjsW.eKbjU comme condition d'arrêt (pas le scrollHeight)
+- scrollBy(0, 400) avec 1s de pause entre chaque scroll
+- google limite à ~120 résultats par recherche, conseiller à l'user de découper par quartier
 
 TODO :
-- Créer une fonction utilitaire parse_single_entreprise(soup) qui parse titre + détails
-- Modifier get_entreprises_html_section pour retourner une liste d'1 entreprise au lieu de 0
-- Vérifier les sélecteurs single/another_country/region dans le navigateur
+- ajouter quartier dans scrape_activities_data pour découper les recherches
