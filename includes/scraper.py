@@ -9,7 +9,7 @@ import os
 import includes.geo as geo
 from includes.utils import (
     is_valid_domain, is_valid_phone_number,
-    security_of_null, celebrity_indice
+    get_text_or_na, celebrity_indice
 )
 from includes.driver import create_driver
 
@@ -90,20 +90,20 @@ def get_all_entreprises_infos(soup):
     entreprises = []
     if soup:
         for entreprise_infos in soup:
-            name = security_of_null(entreprise_infos.select_one(
+            name = get_text_or_na(entreprise_infos.select_one(
                 'div.NrDZNb div.qBF1Pd.fontHeadlineSmall'))
-            average_note = security_of_null(
+            average_note = get_text_or_na(
                 entreprise_infos.select_one('span[role="img"].ZkP5Je span.MW4etd'))
-            vote_count = security_of_null(
+            vote_count = get_text_or_na(
                 entreprise_infos.select_one('span[role="img"].ZkP5Je span.UY7F9'))
-            activity = security_of_null(entreprise_infos.select_one(
+            activity = get_text_or_na(entreprise_infos.select_one(
                 'div.W4Efsd div.W4Efsd span:first-child > span'))
-            phone_number = security_of_null(entreprise_infos.select_one('.UaQhfb.fontBodyMedium .W4Efsd + .W4Efsd > .W4Efsd + .W4Efsd > span:last-child > span:last-child'))
+            phone_number = get_text_or_na(entreprise_infos.select_one('.UaQhfb.fontBodyMedium .W4Efsd + .W4Efsd > .W4Efsd + .W4Efsd > span:last-child > span:last-child'))
             if phone_number != "N/A" and not is_valid_phone_number(phone_number):
                 phone_number = "N/A"
             href_element = entreprise_infos.select_one('.lI9IFe .Rwjeuc a.lcr4fd.S9kvJb')
             href = href_element.get('href') if href_element else "N/A"
-            address = security_of_null(entreprise_infos.select_one(
+            address = get_text_or_na(entreprise_infos.select_one(
                 'div.W4Efsd div.W4Efsd span:last-child span:last-child'))
             ic = celebrity_indice(vote_count, average_note)
             transition_element = entreprise_infos.select_one('a.hfpxzc')
@@ -121,44 +121,38 @@ def get_all_entreprises_infos(soup):
             entreprises.append(entreprise)
     return entreprises
 
-
+# ✔ tested and working
 def href_checker(entreprises):
-    for entreprise in tqdm(entreprises, desc="Entreprises"):
-        if "https://www.google.com/maps/" in entreprise['transition']:
-            html_content = None
-            with create_driver(headless=True) as driver:
-                try:
-                    driver.get(entreprise['transition'])
-                    WebDriverWait(driver, 5).until(
-                        EC.presence_of_element_located(
-                            (By.CSS_SELECTOR, "#QA0Szd > div > div > div.w6VYqd > div:nth-child(2) > div"))
-                    )
-                    html_content = driver.page_source
-                except Exception as e:
-                    print(f"Erreur lors de l'extraction de l'URL avec Selenium : {e}")
+    from selenium.common.exceptions import TimeoutException, WebDriverException
 
-            if html_content:
-                soup = BeautifulSoup(html_content, 'html.parser')
-                try:
-                    section_html = soup.select_one(
-                        'div[role="region"]'
-                    )
-                    if section_html:
-                        section_parse = section_html.find_all(
-                            'div', class_=['Io6YTe', 'fontBodyMedium', 'kR99db']
-                        )
-                        for tag in section_parse:
-                            text = tag.get_text()
-                            if is_valid_phone_number(text):
-                                print(text)
-                                entreprise.update({"phone_number": text})
-                                print(entreprise["phone_number"])
-                            elif is_valid_domain(text):
-                                entreprise.update({"web_site": text})
-                    else:
-                        print("Élément avec le sélecteur donné non trouvé.")
-                except Exception as e:
-                    print(f"Erreur lors du parsing : {e}")
+    with create_driver(headless=True) as driver:
+        for entreprise in tqdm(entreprises, desc="Entreprises"):
+            if "https://www.google.com/maps/" not in entreprise['transition']:
+                continue
+            if entreprise['phone_number'] != "N/A" and entreprise['web_site'] != "N/A":
+                continue
+
+            try:
+                driver.get(entreprise['transition'])
+                WebDriverWait(driver, 5).until(
+                    lambda d: len(d.find_elements(By.CSS_SELECTOR, 'div.m6QErb.XiKgde[role="region"]')) >= 2
+                )
+            except (TimeoutException, WebDriverException) as e:
+                print(f"Erreur lors de l'extraction de l'URL avec Selenium : {e}")
+                continue
+
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
+            sections = soup.select('div.m6QErb.XiKgde[role="region"]')
+            if len(sections) < 2:
+                print("Sections région insuffisantes.")
+                continue
+
+            for tag in sections[1].find_all('div', class_=['Io6YTe', 'fontBodyMedium', 'kR99db']):
+                text = tag.get_text(strip=True)
+                if entreprise['phone_number'] == "N/A" and is_valid_phone_number(text):
+                    entreprise['phone_number'] = text
+                elif entreprise['web_site'] == "N/A" and is_valid_domain(text):
+                    entreprise['web_site'] = text
     return entreprises
 
 

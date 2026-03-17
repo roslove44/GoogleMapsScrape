@@ -16,3 +16,6 @@ __pycache__/
 
 # Variables d'environnement
 .env
+
+# Assistance
+Claude.md
