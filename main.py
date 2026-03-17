@@ -5,6 +5,7 @@ from includes.scraper import scrape_activities_data, simple_search, activities
 from includes.csv_handler import merge_csv_files
 from includes.geo import quartiers
 from includes.i18n import set_lang, t
+from includes.logger import log_error
 
 
 def print_hint(fn_name, description):
@@ -105,4 +106,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print(t("keyboard_interrupt"))
+    except Exception as e:
+        from selenium.common.exceptions import WebDriverException
+        log_file = log_error(e)
+        if isinstance(e, WebDriverException) and "no such window" in str(e):
+            print(t("browser_closed"))
+        else:
+            print(t("unexpected_error", log_file=log_file))

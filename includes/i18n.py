@@ -8,6 +8,9 @@ MESSAGES = {
         "saved":                "\033[92m ✔ ({search_text}): enregistré \033[0m",
         "selenium_error":       "Erreur lors de l'extraction de l'URL avec Selenium : {error}",
         "insufficient_regions": "Sections région insuffisantes.",
+        "browser_closed":       "\033[91m✘ Le navigateur a été fermé pendant l'exécution.\033[0m",
+        "unexpected_error":     "\033[91m✘ Une erreur inattendue est survenue. Détails dans {log_file}\033[0m",
+        "keyboard_interrupt":   "\n\033[93m⚠ Programme interrompu par l'utilisateur.\033[0m",
         # csv_handler
         "no_csv_found":         "Aucun fichier CSV trouvé dans le dossier spécifié.",
         "merge_success":        "Données fusionnées avec succès dans le fichier {file}.",
@@ -59,6 +62,9 @@ MESSAGES = {
         "saved":                "\033[92m ✔ ({search_text}): saved \033[0m",
         "selenium_error":       "Error extracting URL with Selenium: {error}",
         "insufficient_regions": "Insufficient region sections.",
+        "browser_closed":       "\033[91m✘ Browser was closed during execution.\033[0m",
+        "unexpected_error":     "\033[91m✘ An unexpected error occurred. Details in {log_file}\033[0m",
+        "keyboard_interrupt":   "\n\033[93m⚠ Program interrupted by user.\033[0m",
         # csv_handler
         "no_csv_found":         "No CSV files found in the specified folder.",
         "merge_success":        "Data successfully merged into {file}.",
