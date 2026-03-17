@@ -1,15 +1,13 @@
 import pyjson5
 import os
+from includes.i18n import t
 
 
 def get_cities(country):
     if country in quartiers:
         return list(quartiers[country])
     else:
-        print(
-            '\033[93m' +
-            f"\u2718 Aucune Correspondance pour {country}. \n  Ajoutez le dans dictionnaire geo.quartiers "
-            + '\033[0m')
+        print(t("no_country_match", country=country))
         raise SystemExit(1)
 
 

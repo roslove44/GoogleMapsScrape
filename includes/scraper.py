@@ -12,6 +12,7 @@ from includes.utils import (
     get_text_or_na, celebrity_indice
 )
 from includes.driver import create_driver
+from includes.i18n import t
 
 activities = geo.activities
 
@@ -174,13 +175,13 @@ def href_checker(entreprises):
                     lambda d: len(d.find_elements(By.CSS_SELECTOR, 'div.m6QErb.XiKgde[role="region"]')) >= 2
                 )
             except (TimeoutException, WebDriverException) as e:
-                print(f"Erreur lors de l'extraction de l'URL avec Selenium : {e}")
+                print(t("selenium_error", error=e))
                 continue
 
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             sections = soup.select('div.m6QErb.XiKgde[role="region"]')
             if len(sections) < 2:
-                print("Sections région insuffisantes.")
+                print(t("insufficient_regions"))
                 continue
 
             for tag in sections[1].find_all('div', class_=['Io6YTe', 'fontBodyMedium', 'kR99db']):
@@ -202,10 +203,10 @@ def scrape_activities_data(activities: list, country_of_search: str, town: list 
             for activity in tqdm(activities, desc="Activities"):
                 location = f"{city} {country_of_search}" if country_of_search else city
                 search_text = f"{activity} à {location}"
-                print(f"\033[92m Récupération des infos {activity} à {location} ...\033[0m")
+                print(t("fetching_info", search_text=f"{activity} à {location}"))
                 result = get_entreprises_html_section(driver, search_text, lang=lang)
                 if result is None:
-                    print(f"\033[93m ⚠ ({activity} à {city}): aucun résultat\033[0m")
+                    print(t("no_result", search_text=f"{activity} à {city}"))
                     continue
                 page_type, data = result
                 if page_type == "entreprises":
@@ -214,18 +215,18 @@ def scrape_activities_data(activities: list, country_of_search: str, town: list 
                 else:
                     entreprises = data
                 load_data(search_text, entreprises, country_of_search, city)
-                print(f"\033[92m \u2714 ({activity} à {city}): enregistré \033[0m")
+                print(t("saved", search_text=f"{activity} à {city}"))
 
 
 # ✔ tested and working
 def simple_search(search: str, country_of_search: str = None, town: str = None, neighborhood: str = None, lang: str = "fr"):
     location = " ".join(p for p in [neighborhood, town, country_of_search] if p)
     search_text = f"{search} à {location}" if location else search
-    print(f"\033[92m Récupération des infos {search_text} ...\033[0m")
+    print(t("fetching_info", search_text=search_text))
     with create_driver() as driver:
         result = get_entreprises_html_section(driver, search_text, lang=lang)
     if result is None:
-        print(f"\033[93m ⚠ ({search_text}): aucun résultat\033[0m")
+        print(t("no_result", search_text=search_text))
         return
     page_type, data = result
     if page_type == "entreprises":
@@ -234,4 +235,4 @@ def simple_search(search: str, country_of_search: str = None, town: str = None, 
     else:
         entreprises = data
     load_data(search_text, entreprises, country_of_search or "", town or "")
-    print(f"\033[92m ✔ ({search_text}): enregistré \033[0m")
+    print(t("saved", search_text=search_text))

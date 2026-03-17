@@ -1,6 +1,7 @@
 import csv
 import os
 from tqdm import tqdm
+from includes.i18n import t
 
 
 def merge_csv_files(folder, output_file_name):
@@ -12,7 +13,7 @@ def merge_csv_files(folder, output_file_name):
     csv_files = [file for file in os.listdir(folder_path) if file.endswith('.csv')]
 
     if not csv_files:
-        print("Aucun fichier CSV trouvé dans le dossier spécifié.")
+        print(t("no_csv_found"))
         return
 
     first_file = os.path.join(folder_path, csv_files[0])
@@ -34,7 +35,7 @@ def merge_csv_files(folder, output_file_name):
                     writer.writerow(row)
                     index += 1
 
-    print(f"Données fusionnées avec succès dans le fichier {output_file}.")
+    print(t("merge_success", file=output_file))
 
 
 def _sanitize_name(text):
