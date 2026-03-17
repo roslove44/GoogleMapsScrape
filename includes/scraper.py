@@ -4,9 +4,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from tqdm import tqdm
 from bs4 import BeautifulSoup
-import csv
-import os
 import includes.geo as geo
+from includes.csv_handler import load_data
 from includes.utils import (
     is_valid_domain, is_valid_phone_number,
     get_text_or_na, celebrity_indice
@@ -121,6 +120,7 @@ def get_all_entreprises_infos(soup):
             entreprises.append(entreprise)
     return entreprises
 
+
 # ✔ tested and working
 def href_checker(entreprises):
     from selenium.common.exceptions import TimeoutException, WebDriverException
@@ -156,26 +156,6 @@ def href_checker(entreprises):
     return entreprises
 
 
-def load_data(search_text, entreprises, country_of_search, town):
-    title = search_text.strip().replace(
-        "-", "_").replace("/", "_").replace(" ", "_").replace(":", "_").replace("|", "")
-    folder = country_of_search.strip().replace(
-        "-", "_").replace("/", "_").replace(" ", "_").replace(":", "_").replace("|", "")
-    if not os.path.exists(f'result/{folder}'):
-        os.makedirs(f'result/{folder}')
-    with open(f'result/{folder}/{title}.csv', mode='w', newline='', encoding='utf-8') as file:
-        fieldnames = ['index', 'name', 'activity', 'celebrity_indice', 'ic',
-                      'phone_number', 'web_site', 'address', 'town', 'transition']
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-        writer.writeheader()
-        index = 1
-        for entreprise in entreprises:
-            entreprise['town'] = town
-            entreprise['index'] = index
-            writer.writerow(entreprise)
-            index += 1
-
-
 def scrape_activities_data(activities: list, country_of_search: str, town: list = None):
     cities = geo.get_cities(country_of_search)
     if town is not None and isinstance(town, list):
@@ -194,6 +174,7 @@ def scrape_activities_data(activities: list, country_of_search: str, town: list 
                 print(f"\033[92m \u2714 ({activity} à {city}): enregistré \033[0m")
 
 
+# ✔ tested and working
 def simple_search(search: str, country_of_search: str, town: str):
     location = f"{town} {country_of_search}" if country_of_search else town
     search_text = f"{search} à {location}"
@@ -201,6 +182,6 @@ def simple_search(search: str, country_of_search: str, town: str):
     with create_driver() as driver:
         soup = get_entreprises_html_section(driver, search_text)
     entreprises = get_all_entreprises_infos(soup)
-    data = href_checker(entreprises)
-    load_data(search_text, data, country_of_search, town)
-    print(f"\033[92m \u2714 ({search_text}: {country_of_search}): enregistré \033[0m")
+    entreprises = href_checker(entreprises)
+    load_data(search_text, entreprises, country_of_search, town)
+    print(f"\033[92m ✔ ({search} à {town}): enregistré \033[0m")

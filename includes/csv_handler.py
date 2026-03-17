@@ -1,13 +1,6 @@
 import csv
 import os
 from tqdm import tqdm
-from bs4 import BeautifulSoup
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
-from includes.utils import is_valid_domain, is_valid_phone_number
-from includes.driver import create_driver
 
 
 def merge_csv_files(folder, output_file_name):
@@ -44,51 +37,20 @@ def merge_csv_files(folder, output_file_name):
     print(f"Données fusionnées avec succès dans le fichier {output_file}.")
 
 
-def transform_csv(file_path):
-    with open(file_path, mode='r', encoding='utf-8') as infile:
-        reader = csv.DictReader(infile)
-        entreprises = list(reader)
+def _sanitize_name(text):
+    for char in "-/ :|":
+        text = text.replace(char, "_")
+    return text.strip()
 
-    for entreprise in entreprises:
-        transition_value = entreprise.get('transition', '')
-        if "https://www.google.com/maps/" in transition_value:
-            html_content = None
-            with create_driver(headless=True) as driver:
-                try:
-                    driver.get(transition_value)
-                    WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located(
-                            (By.CSS_SELECTOR, "#QA0Szd > div > div > div.w6VYqd > div:nth-child(2) > div"))
-                    )
-                    html_content = driver.page_source
-                except Exception as e:
-                    print(f"Erreur lors de l'extraction de l'URL avec Selenium : {e}")
 
-            if html_content:
-                soup = BeautifulSoup(html_content, 'html.parser')
-                try:
-                    section_html = soup.select_one(
-                        '#QA0Szd > div > div > div.w6VYqd > div:nth-child(2) > div'
-                    )
-                    if section_html:
-                        section_parse = section_html.find_all(
-                            'div', class_=['Io6YTe', 'fontBodyMedium', 'kR99db']
-                        )
-                        for tag in section_parse:
-                            text = tag.get_text()
-                            if is_valid_phone_number(text):
-                                print(text)
-                                entreprise.update({"phone_number": text})
-                            elif is_valid_domain(text):
-                                print(text)
-                                entreprise.update({"web_site": text})
-                    else:
-                        print("Élément avec le sélecteur donné non trouvé.")
-                except Exception as e:
-                    print(f"Erreur lors du parsing : {e}")
-
-    with open(file_path, mode='w', newline='', encoding='utf-8') as outfile:
-        fieldnames = entreprises[0].keys()
-        writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+def load_data(search_text, entreprises, country_of_search, town):
+    title = _sanitize_name(search_text)
+    folder = _sanitize_name(country_of_search)
+    os.makedirs(f'result/{folder}', exist_ok=True)
+    with open(f'result/{folder}/{title}.csv', mode='w', newline='', encoding='utf-8') as file:
+        fieldnames = ['index', 'name', 'activity', 'celebrity_indice', 'ic', 'phone_number', 'web_site', 'address', 'town', 'transition']
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerows(entreprises)
+        for index, entreprise in enumerate(entreprises, start=1):
+            row = {**entreprise, 'town': town, 'index': index}
+            writer.writerow(row)
