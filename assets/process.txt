@@ -50,5 +50,35 @@ div > div.bfdHYd.Ppzolf.OFBs3e > div.lI9IFe > div.y7PRA > div > div > div.UaQhfb
 div > a
 
 
-when the search is in another country 
+when the search is in another country
 #omnibox-directions > div > div:nth-child(2) > div > button
+
+
+=== DRAFT : nouvelle logique get_entreprises_html_section ===
+
+CONSTAT :
+- "entreprises" (liste) → conteneur role="main" qui abrite un div role="feed"
+- "single" (fiche unique) → conteneur role="main" aussi, MAIS contient div.m6QErb.XiKgde[role="region"]
+  → C'est la même logique que href_checker : une fiche entreprise directe
+  → Au lieu de return 0, on devrait extraire les infos de cette entreprise unique
+
+DETECTION :
+1. entreprises → div[role="feed"] présent → scroll infini + parse toutes les cards
+2. single → 2+ div.m6QErb.XiKgde[role="region"] (pas de feed) → parse la fiche unique (titre + détails via href_checker logique)
+3. region → 1 seul div.m6QErb.XiKgde[role="region"] → skip
+4. another_country → #omnibox-directions présent → skip
+
+PARSING single — section titre (div.tAiQdd) :
+- Nom : h1.DUwDvf.lfPIob → "Supermarché CHEZ LE GROS"
+- Note moyenne : div.F7nice span[aria-hidden="true"] → "4,2"
+- Nombre d'avis : span[role="img"][aria-label*="avis"] → "(370)"
+- Activité : button.DkEaL → "Supermarché"
+
+PARSING single — section détails (div.m6QErb.XiKgde[role="region"]) :
+- Même logique que href_checker : parser les div.Io6YTe.fontBodyMedium.kR99db
+- Extraire phone_number (is_valid_phone_number) et web_site (is_valid_domain)
+
+TODO :
+- Créer une fonction utilitaire parse_single_entreprise(soup) qui parse titre + détails
+- Modifier get_entreprises_html_section pour retourner une liste d'1 entreprise au lieu de 0
+- Vérifier les sélecteurs single/another_country/region dans le navigateur

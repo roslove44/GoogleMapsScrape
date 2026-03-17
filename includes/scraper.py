@@ -2,6 +2,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import time
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 import includes.geo as geo
@@ -15,13 +16,52 @@ from includes.driver import create_driver
 activities = geo.activities
 
 
+# ✔ tested and working
+def parse_single_entreprise(soup, transition_url):
+    """Parse la fiche d'une entreprise unique."""
+    name = get_text_or_na(soup.select_one('h1.DUwDvf.lfPIob'))
+    average_note = get_text_or_na(soup.select_one('div.F7nice span[aria-hidden="true"]'))
+    vote_count_el = soup.select_one('span[role="img"][aria-label*="avis"]')
+    vote_count = vote_count_el.get_text(strip=True) if vote_count_el else "N/A"
+    activity = get_text_or_na(soup.select_one('button.DkEaL'))
+    ic = celebrity_indice(vote_count, average_note)
+
+    address = "N/A"
+    phone_number = "N/A"
+    web_site = "N/A"
+
+    sections = soup.select('div.m6QErb.XiKgde[role="region"]')
+    if len(sections) >= 2:
+        details = sections[1].find_all('div', class_=['Io6YTe', 'fontBodyMedium', 'kR99db'])
+        if details:
+            address = get_text_or_na(details[0])
+        for tag in details[1:]:
+            text = tag.get_text(strip=True)
+            if phone_number == "N/A" and is_valid_phone_number(text):
+                phone_number = text
+            elif web_site == "N/A" and is_valid_domain(text):
+                web_site = text
+
+    return [{
+        'name': name,
+        'activity': activity,
+        'celebrity_indice': f"{average_note} {vote_count}",
+        'ic': ic,
+        'phone_number': phone_number,
+        'web_site': web_site,
+        'address': address,
+        'transition': transition_url
+    }]
+
+
 def get_entreprises_html_section(driver, search_text):
-    page_sections = {
-        "entreprises": "div[role='feed']",
-        "single": "#QA0Szd > div > div > div.w6VYqd > div.bJzME.tTVLSc > div > div.e07Vkf.kA9KIf > div > div > div.TIHn2",
-        "another_country": "#omnibox-directions > div > div.JuLCid",
-        "region": "#QA0Szd > div > div > div.w6VYqd > div.bJzME.tTVLSc > div > div.e07Vkf.kA9KIf.dS8AEf > div > div > div.CPtD3c"
-    }
+    from selenium.common.exceptions import TimeoutException
+
+    FEED_SELECTOR = "div[role='feed']"
+    REGION_SELECTOR = 'div.m6QErb.XiKgde[role="region"]'
+    OMNIBOX_SELECTOR = "#omnibox-directions, #directions-searchbox-0, #directions-searchbox-1"
+    END_OF_LIST_SELECTOR = "div.m6QErb.tLjsW.eKbjU"
+
     driver.get("https://www.google.com/maps/")
 
     # Accepter la page de consentement cookies Google si elle apparaît
@@ -30,7 +70,7 @@ def get_entreprises_html_section(driver, search_text):
             EC.element_to_be_clickable((By.XPATH, "//form[contains(@action,'consent')]//button"))
         )
         accept_btn.click()
-    except:
+    except TimeoutException:
         pass
 
     WebDriverWait(driver, 10).until(
@@ -40,48 +80,43 @@ def get_entreprises_html_section(driver, search_text):
     search_box.send_keys(search_text)
     search_box.send_keys(Keys.ENTER)
 
-    driver.implicitly_wait(1)
-
-    single_page_locator = (By.CSS_SELECTOR, page_sections["single"])
-    another_country_locator = (By.CSS_SELECTOR, page_sections["another_country"])
-    regions_locator = (By.CSS_SELECTOR, page_sections["region"])
+    # Attendre qu'un indicateur de résultat apparaisse
     try:
-        wait = WebDriverWait(driver, 3)
-        wait.until(EC.visibility_of_element_located(single_page_locator))
-        single_page = driver.find_element(By.CSS_SELECTOR, page_sections["single"])
-        if single_page.is_displayed:
-            return 0
-    except:
-        try:
-            wait = WebDriverWait(driver, 1)
-            wait.until(EC.visibility_of_element_located(another_country_locator))
-            another_country = driver.find_element(By.CSS_SELECTOR, page_sections["another_country"])
-            if another_country.is_displayed:
-                return 0
-        except:
-            try:
-                wait.until(EC.visibility_of_element_located(regions_locator))
-                region = driver.find_element(By.CSS_SELECTOR, page_sections["region"])
-                if region.is_displayed:
-                    return 0
-            except:
-                pass
-
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, page_sections["entreprises"]))
-    )
-    container = driver.find_element(By.CSS_SELECTOR, page_sections["entreprises"])
-    while True:
-        at_bottom = driver.execute_script(
-            "return arguments[0].scrollHeight - arguments[0].scrollTop <= arguments[0].clientHeight + 5",
-            container
+        WebDriverWait(driver, 10).until(
+            lambda d: (
+                d.find_elements(By.CSS_SELECTOR, FEED_SELECTOR) or
+                d.find_elements(By.CSS_SELECTOR, REGION_SELECTOR) or
+                d.find_elements(By.CSS_SELECTOR, OMNIBOX_SELECTOR)
+            )
         )
-        if at_bottom:
-            break
-        driver.execute_script("arguments[0].scrollBy(0, 500)", container)
+    except TimeoutException:
+        return None
 
-    section_html = driver.find_element(By.CSS_SELECTOR, page_sections["entreprises"]).get_attribute("innerHTML")
-    return BeautifulSoup(section_html, 'html.parser').find_all('div', class_=['Nv2PK', 'Q2HXcd', 'THOPZb'])
+    # Cas entreprises : liste avec scroll infini
+    if driver.find_elements(By.CSS_SELECTOR, FEED_SELECTOR):
+        container = driver.find_element(By.CSS_SELECTOR, FEED_SELECTOR)
+        while not driver.find_elements(By.CSS_SELECTOR, END_OF_LIST_SELECTOR):
+            driver.execute_script("arguments[0].scrollBy(0, 400)", container)
+            time.sleep(1)
+
+        section_html = container.get_attribute("innerHTML")
+        cards = BeautifulSoup(section_html, 'html.parser').find_all('div', class_=['Nv2PK', 'Q2HXcd', 'THOPZb'])
+        return ("entreprises", cards)
+
+    # Cas another_country : skip
+    if driver.find_elements(By.CSS_SELECTOR, OMNIBOX_SELECTOR):
+        return None
+
+    # Cas single (2+ regions) ou region (1 seule → skip)
+    try:
+        WebDriverWait(driver, 3).until(
+            lambda d: len(d.find_elements(By.CSS_SELECTOR, REGION_SELECTOR)) >= 2
+        )
+    except TimeoutException:
+        return None
+
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
+    return ("single", parse_single_entreprise(soup, driver.current_url))
 
 
 # ✔ tested and working
@@ -167,21 +202,35 @@ def scrape_activities_data(activities: list, country_of_search: str, town: list 
                 location = f"{city} {country_of_search}" if country_of_search else city
                 search_text = f"{activity} à {location}"
                 print(f"\033[92m Récupération des infos {activity} à {location} ...\033[0m")
-                soup = get_entreprises_html_section(driver, search_text)
-                entreprises = get_all_entreprises_infos(soup)
-                entreprises = href_checker(entreprises)
+                result = get_entreprises_html_section(driver, search_text)
+                if result is None:
+                    print(f"\033[93m ⚠ ({activity} à {city}): aucun résultat\033[0m")
+                    continue
+                page_type, data = result
+                if page_type == "entreprises":
+                    entreprises = get_all_entreprises_infos(data)
+                    entreprises = href_checker(entreprises)
+                else:
+                    entreprises = data
                 load_data(search_text, entreprises, country_of_search, city)
                 print(f"\033[92m \u2714 ({activity} à {city}): enregistré \033[0m")
 
 
 # ✔ tested and working
-def simple_search(search: str, country_of_search: str, town: str):
-    location = f"{town} {country_of_search}" if country_of_search else town
-    search_text = f"{search} à {location}"
+def simple_search(search: str, country_of_search: str = None, town: str = None):
+    location = " ".join(p for p in [town, country_of_search] if p)
+    search_text = f"{search} à {location}" if location else search
     print(f"\033[92m Récupération des infos {search_text} ...\033[0m")
     with create_driver() as driver:
-        soup = get_entreprises_html_section(driver, search_text)
-    entreprises = get_all_entreprises_infos(soup)
-    entreprises = href_checker(entreprises)
-    load_data(search_text, entreprises, country_of_search, town)
-    print(f"\033[92m ✔ ({search} à {town}): enregistré \033[0m")
+        result = get_entreprises_html_section(driver, search_text)
+    if result is None:
+        print(f"\033[93m ⚠ ({search_text}): aucun résultat\033[0m")
+        return
+    page_type, data = result
+    if page_type == "entreprises":
+        entreprises = get_all_entreprises_infos(data)
+        entreprises = href_checker(entreprises)
+    else:
+        entreprises = data
+    load_data(search_text, entreprises, country_of_search or "", town or "")
+    print(f"\033[92m ✔ ({search_text}): enregistré \033[0m")
